@@ -9,13 +9,16 @@
 #include <errno.h>
 
 #include <libmemcached/memcached.h>
-
+// mutex lock for shared memory
 pthread_mutex_t printmutex;
 
 //gcc -std=c++11 io.cpp -o io -lmemcached -lpthread
 
 #define NTHREADS 16
 
+// can't use these global variables in other files using "extern"
+// unsigned int==uint32_t
+// TODO:meaning of op_load/test?
 static uint32_t op_load = 0, op_test = 0;
 
 enum operation { op_set = 0, op_insert, op_get, op_del, op_update };
@@ -28,16 +31,17 @@ typedef struct query
     char *value;
 } query;
 
-
+// store queries information
 query **queries;
-
+// parameters about thread
+// statistics result of differet threads
 typedef struct
 {
-    uint32_t tid;
+    uint32_t tid;//TODO:?
     uint32_t num_ops;
 
     uint32_t num_sets;
-    double time_sets;
+    double time_sets;//TODO:?
 
     uint32_t num_updates;
     double time_updates;
@@ -48,7 +52,7 @@ typedef struct
     uint32_t num_gets;
     double time_gets;
 
-    uint32_t num_miss;
+    uint32_t num_miss;//TODO:cache or object directly?
     uint32_t num_hits;
 
     double throughput;
@@ -60,7 +64,7 @@ typedef struct
 
     double time;
 } thread_param;
-
+// results in total
 typedef struct result_t
 {
     double total_throughput;
@@ -137,7 +141,7 @@ static char *ECH_get(struct ECHash_st *ECH, char *key)
 //     }
 //     return 0;
 // }
-
+// static:can't use this function in other functions
 static void queries_init()
 {
     FILE *fin_para;
@@ -147,9 +151,11 @@ static void queries_init()
         exit(-1);
     }
     char path[100]={0};
+    // scanf:input using some format
     fscanf(fin_para,"Workloads Path=%s", path);
 
     char path1[100], path2[100];
+    // print format string to path1
     sprintf(path1, "%s/ycsb_set.txt", path);
     sprintf(path2, "%s/ycsb_test.txt", path);
 
@@ -166,12 +172,12 @@ static void queries_init()
         exit(-1);
     }
 
-
+// ------------------------2021.10.20 0:34 ----------------------------------------------------------------
     uint32_t load_set = 0, load_test = 0, get_test = 0;
 
     fscanf(fin_set, "Operationcount=%u", &op_load);
     fscanf(fin_test, "Operationcount=%u", &op_test);
-
+    // allocate memory and every byte is initialized with 0
     queries = (struct query **)calloc(op_load + op_test, sizeof(struct query *));
 
     for(uint32_t i = 0; i < op_load; i++)
@@ -185,13 +191,18 @@ static void queries_init()
 
     char tmp[10240];
     uint32_t count = 0;
+    // set pointer of file to beginning
     fseek(fin_set, 0, SEEK_SET);
-
+    // fgets:read 10240 char from one line to tmp
+    // feof:not to the end
+    // Parsing stops if a newline character is found, in which case str will contain that newline character
     while((!feof(fin_set)) && fgets(tmp, 10240, fin_set))
     {
 
         char key[250] = {0};
         char value[10240] = {0};
+        // scan ... from tmp in format of "%..."
+        // %[^\n]:all characters not '\n' are matched
         if(sscanf(tmp, "INSERT %s %[^\n]", key, value))
         {
             queries[count]->op = op_set;
