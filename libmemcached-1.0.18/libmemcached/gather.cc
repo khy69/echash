@@ -44,6 +44,7 @@ static int get_value_from_chunk(struct ECHash_st *ptr, struct pos_len_st *pos_le
     size_t value_length;
     uint32_t  flags;
     memcached_return_t rc;
+//2021.10.25 13:27----------------------------------------------------------------
     if(gv->cis->key)
     {
         //stripe:%u-parity:%u
@@ -147,6 +148,7 @@ int gather_other_value(struct ECHash_st *ptr, uint32_t ring_id, struct pos_len_s
     uint32_t i = 0;
     for(i = 0; i < N; i++)
     {
+      //get all the chunks in stripe
         gv[i].cis = &(ptr->stripe_list[stripe_id][i]);
         gv[i].ok = 0;
     }
@@ -154,6 +156,7 @@ int gather_other_value(struct ECHash_st *ptr, uint32_t ring_id, struct pos_len_s
 
     for(i = 0; i < N; i++)
     {
+      //in case chunks in the same ring
         if(gv[i].cis->ring_id == ring_id)
             continue;
 
