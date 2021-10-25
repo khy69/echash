@@ -53,7 +53,7 @@ struct memcached_st
     */
     //in_migrating_lock=0; =1,cannot io,but can migrate
     int in_migrating_lock;
-
+    // bit field:a struct take some wholelistic bytes,but you can sotre more things
     struct
     {
         bool is_purging: 1;

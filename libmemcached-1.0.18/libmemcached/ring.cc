@@ -49,7 +49,9 @@ static int balance_cmp(const void *t1, const void *t2)
         return -1;
     }
 }
-
+/*
+   hash all the virtual buckets to system
+*/
 static void run_balance(struct ECHash_st *ptr)
 {
     uint32_t arr_index = 0;
@@ -59,9 +61,11 @@ static void run_balance(struct ECHash_st *ptr)
         {
             char sort_ring[100] = {0};
             uint32_t sort_ring_len = 0;
-
+            //write (which ring,which bucket) to sort_ring,return strlen(string)
             sort_ring_len = sprintf(sort_ring, "%s:%u-%u", "Ring", ring_index, pointer_index);
+            //sort_ring->key
             uint32_t value = hashkit_digest(&(ptr->rings[0].ring->hashkit), sort_ring, (size_t)sort_ring_len);
+            //hash every virtual bucket for echash
             ptr->balance_arr[arr_index].index = ring_index;
             ptr->balance_arr[arr_index++].value = value;
 
@@ -88,9 +92,12 @@ memcached_return_t ECHash_init(struct ECHash_st **ptr)
     uint32_t i;
     for(i = 0; i < RING_SIZE; i++)
     {
+        // link a ring
         (*ptr)->rings[i].ring = memcached_create(NULL);
+        // use consistent hashing
         memcached_behavior_set((*ptr)->rings[i].ring, MEMCACHED_BEHAVIOR_DISTRIBUTION, MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA);
         (*ptr)->rings[i].value_size = 0;
+        // wait for chunk
         chunk_waitting_init(*ptr, i);
     }
 
@@ -109,11 +116,11 @@ memcached_return_t ECHash_init(struct ECHash_st **ptr)
     {
         (*ptr)->rings[i].kv_set_waitting_list = 0;
     }
-
+    // TODO:all virtual buckets of all rings?
     (*ptr)->balance_arr = (struct balance_st *)calloc(1, RING_SIZE * RING_VIRTUAL * sizeof(struct balance_st));
 
     run_balance(*ptr);
-
+    
     clear_encode_st(*ptr);
 
     //create the backup dir

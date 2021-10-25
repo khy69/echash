@@ -99,7 +99,9 @@ Slab->several chunks
 
 how to read?i'm more on details?
 
+Metadata:ring id
 
+how to implement fragment-repair?
 
 ## how to read a thesis
 
@@ -123,6 +125,12 @@ how to read?i'm more on details?
 - Conbination->engineering->system detail, creation->research->method?
 - find what you are **fuzzy**
 - experimental part->result(detail-> repeat?)
+
+abstract->rough(not too detailed!!)
+
+graph(rendi:the last course)
+
+
 
 ## how to perform well as a advisee?
 

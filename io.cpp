@@ -37,7 +37,7 @@ query **queries;
 // statistics result of differet threads
 typedef struct
 {
-    uint32_t tid;//TODO:?
+    uint32_t tid;//own serial number(index)
     uint32_t num_ops;
 
     uint32_t num_sets;
@@ -142,6 +142,7 @@ static char *ECH_get(struct ECHash_st *ECH, char *key)
 //     return 0;
 // }
 // static:can't use this function in other functions
+// load and test dataset
 static void queries_init()
 {
     FILE *fin_para;
@@ -198,17 +199,19 @@ static void queries_init()
     // Parsing stops if a newline character is found, in which case str will contain that newline character
     while((!feof(fin_set)) && fgets(tmp, 10240, fin_set))
     {
-
+        // set file:load or insert something,initalize system
         char key[250] = {0};
         char value[10240] = {0};
         // scan ... from tmp in format of "%..."
-        // %[^\n]:all characters not '\n' are matched
+        // %[^\n]:all characters except '\n' are matched
+        // TODO: insert/set/load/update->write,test->read?
         if(sscanf(tmp, "INSERT %s %[^\n]", key, value))
         {
             queries[count]->op = op_set;
             queries[count]->key = (char *)malloc((strlen(key) + 1) * sizeof(char));
             queries[count]->value = (char *)malloc((strlen(value) + 1) * sizeof(char));
-
+        // strlen(key)+1 characters from key to queries[count]->key
+        // ending with '\0'
             memcpy(queries[count]->key, key, strlen(key) + 1);
             memcpy(queries[count]->value, value, strlen(value) + 1);
             count++;
@@ -237,8 +240,10 @@ static void queries_init()
     fseek(fin_test, 0, SEEK_SET);
     while((!feof(fin_test)) && fgets(tmp, 10240, fin_test))
     {
+        // test:test system
         char key[250] = {0};
         char value[10240] = {0};
+        // TODO:difference between two "insert"
         if(sscanf(tmp, "INSERT %s %[^\n]", key, value))
         {
             queries[count]->op = op_insert;
@@ -396,6 +401,7 @@ static void *queries_exec(void *param)
             // p->num_updates++;
             // gettimeofday(&tv_te, NULL);
             // p->time_updates += timeval_diff(&tv_ts, &tv_te);
+            // TODO: update
         }
         else
         {
@@ -436,14 +442,16 @@ static void *queries_exec(void *param)
 int main(int argc, char *argv[])
 {
     queries_init();
-
+    // pthread_t is the data type used to uniquely identify a thread
     pthread_t threads[NTHREADS];
+    // attributes of thread
     pthread_attr_t attr;
     pthread_attr_init(&attr);
+    // JOINABLE:source of a thread can be waited or recovered by other threads
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);;
-
+    // init printmutex using default attributes
     pthread_mutex_init(&printmutex, NULL);
-
+    // take down results of different threads
     thread_param tp[NTHREADS];
 
     for (uint32_t t = 0; t < NTHREADS; t++)
@@ -451,9 +459,11 @@ int main(int argc, char *argv[])
         //tp[t].queries = queries;
         tp[t].tid     = t;
         // tp[t].sop     = sop_tmp;
+        // TODO:meaning?why taking down something common
         tp[t].num_ops = op_load + op_test;
         tp[t].num_sets = tp[t].num_inserts = tp[t].num_gets = tp[t].num_updates = tp[t].num_miss = tp[t].num_hits = 0;
         tp[t].time = tp[t].throughput = 0.0;
+        // create->thread execute function
         int rc = pthread_create(&threads[t], &attr, queries_exec, (void *) &tp[t]);
         if (rc)
         {
@@ -487,6 +497,8 @@ int main(int argc, char *argv[])
     for (uint32_t t = 0; t < NTHREADS; t++)
     {
         void *status;
+        // make main thread wait for threads[t]
+        // for loop:wait for all threads(longest)
         int rc = pthread_join(threads[t], &status);
         if (rc)
         {

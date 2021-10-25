@@ -34,8 +34,9 @@ unsigned char *transfer_str_to_ustr(char *s, uint32_t len)
     }
     return p;
 }
-
-
+/*
+  clear or allocate ec
+*/
 void clear_encode_st(struct ECHash_st *ptr)
 {
     int i;

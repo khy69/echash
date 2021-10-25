@@ -22,14 +22,14 @@
 #define BATCH_PARITY 10
 #define BUFFER_DATA 4096
 #define BUFFER_PARITY 2048
-
+// TODO:not scale?
 enum chunk_stat { Waitting, Sealed, Sealed_repair, Abandon };
 
 struct hash_node
 {
     char *key;
     uint64_t  value;
-
+    // linking as list
     struct hash_node *next;
 };
 
@@ -43,6 +43,7 @@ struct server_add_st
 /*To do*/
 struct balance_st
 {
+    // TODO:?
     uint32_t index;
     uint32_t value;
 };
@@ -74,12 +75,15 @@ struct kv_set_waitting_st
 
 struct memcached_ring_st
 {
+    // used to link all servers in a ring
     memcached_st *ring;
     struct hash_node *hash_table[HASH_MAX_SIZE]; //Object Index
+    //For migrating and writting during the miagartion in a ring
     struct kv_set_waitting_st *kv_set_waitting_list;
     uint32_t value_size;
     uint32_t waitting_length;
     uint32_t sealing_chunk_num;
+    // TODO:sealing a chunk?
     struct chunk_waitting_st *chunk_waitting_list;
 };
 
@@ -92,9 +96,11 @@ struct key_st
 //Transfer from chunk_waitting_st
 struct chunk_st
 {
+    // TODO:difference?
     enum chunk_stat stat;
     uint32_t stripe_id;
     uint32_t used_size;
+    // TODO:meaning?
     uint32_t KV_num;
     struct key_st *key_list; //Object Index Reference List (OIRList)
 
@@ -112,6 +118,7 @@ struct chunk_info_st
 struct encode_st
 {
     unsigned char *source_data[N];
+    // TODO:gftbl and function of different matrix
     unsigned char encode_gftbl[32 * K * (N - K)];
     unsigned char encode_matrix[N * K];
     unsigned char *left_data[K];
@@ -121,7 +128,7 @@ struct encode_st
     unsigned char decode_gftbl[32 * K * (N - K)];
     unsigned char *recovery_data[N - K];
 };
-
+// TODO:all metadata about echash?
 struct ECHash_st
 {
     uint32_t total_num_server;
@@ -130,8 +137,11 @@ struct ECHash_st
     struct chunk_st *chunk_list; //Chunk Index
 
     uint32_t stripe_list_size;
+    //a pointer to the whole array,pointer+1 points to end of array
+    //like a two dimensional array
     struct chunk_info_st (*stripe_list)[RING_SIZE]; //Stripe Index
 
     struct encode_st encode;
+    // TODO:how to balance?
     struct balance_st *balance_arr;
 };
