@@ -22,7 +22,7 @@
 #define BATCH_PARITY 10
 #define BUFFER_DATA 4096
 #define BUFFER_PARITY 2048
-// TODO:not scale?
+//start for each chunk
 enum chunk_stat { Waitting, Sealed, Sealed_repair, Abandon };
 
 struct hash_node
@@ -55,7 +55,7 @@ struct chunk_waitting_st
     uint32_t chunk_id; //system global variable when waitting_chunk was malloc.
     int KV_num;
     char *head;
-    char *current;
+    char *current;//save the newest data set in the chunk
     uint32_t chunk_used_size;
     int can_sealing; //if chunk_used_size/4K > CHUNK_SEALED_FACTOR, can_sealing=1
     struct chunk_waitting_st *next;
@@ -83,7 +83,7 @@ struct memcached_ring_st
     uint32_t value_size;
     uint32_t waitting_length;
     uint32_t sealing_chunk_num;
-    // TODO:sealing a chunk?
+    // link all the chunk in a ring,find a useable chunk for new data
     struct chunk_waitting_st *chunk_waitting_list;
 };
 
@@ -96,11 +96,11 @@ struct key_st
 //Transfer from chunk_waitting_st
 struct chunk_st
 {
-    // TODO:difference?
+    // some chunk with object in
     enum chunk_stat stat;
     uint32_t stripe_id;
     uint32_t used_size;
-    // TODO:meaning?
+    // the number of object in the chunk
     uint32_t KV_num;
     struct key_st *key_list; //Object Index Reference List (OIRList)
 
