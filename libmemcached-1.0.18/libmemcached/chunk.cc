@@ -23,7 +23,9 @@ void chunk_waitting_destroy(struct ECHash_st *ptr, uint32_t ring_id)
     ptr->rings[ring_id].waitting_length = 0;
     ptr->rings[ring_id].sealing_chunk_num = 0;
 }
-
+/*
+  create a new chunk
+*/
 struct chunk_waitting_st *chunk_waitting_push(struct ECHash_st *ptr, uint32_t ring_id, uint32_t index_tag)
 {
     struct chunk_waitting_st *cws = (struct chunk_waitting_st *)malloc(sizeof(struct chunk_waitting_st));
@@ -116,6 +118,7 @@ uint32_t chunk_waitting_set_kv(const char *key, uint32_t *chunk_id, struct ECHas
         memcpy(p->current, value, value_length);
 
         uint32_t pos = abs(p->current - p->head);
+        //point the end of current,for next memcpy 
         p->current = p->current + value_length;
         p->chunk_used_size = p->chunk_used_size + value_length;
         p->KV_num++;

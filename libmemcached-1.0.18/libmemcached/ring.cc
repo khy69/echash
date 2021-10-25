@@ -94,7 +94,7 @@ memcached_return_t ECHash_init(struct ECHash_st **ptr)
     {
         // link a ring
         (*ptr)->rings[i].ring = memcached_create(NULL);
-        // use consistent hashing
+        // use consistent hashing(the model in paper)
         memcached_behavior_set((*ptr)->rings[i].ring, MEMCACHED_BEHAVIOR_DISTRIBUTION, MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA);
         (*ptr)->rings[i].value_size = 0;
         // wait for chunk
@@ -400,10 +400,12 @@ memcached_return_t ECHash_set(struct ECHash_st *ptr, const char *key, size_t key
                                    time_t expiration,
                                    uint32_t  flags)
 {
+    //expiration,flag==0?
     memcached_return_t rc;
     uint32_t i;
 
     uint32_t ring_id = get_ring_id(ptr, key, key_length, ring_flag);
+    //take down time of load
     KV_data_ring_load[ring_id]++;
     KV_data_all++;
 
@@ -426,7 +428,9 @@ memcached_return_t ECHash_set(struct ECHash_st *ptr, const char *key, size_t key
     }
     else
     {
+        //insert directly
         rc = memcached_set(ptr->rings[ring_id].ring, key, key_length, value, value_length, expiration, flags);
+        //determine which server
         uint32_t server_key = memcached_generate_hash_with_redistribution(ptr->rings[ring_id].ring, key, key_length);
         KV_data_server_load[ring_id][server_key]++;
         if(rc == MEMCACHED_SUCCESS)
@@ -435,6 +439,7 @@ memcached_return_t ECHash_set(struct ECHash_st *ptr, const char *key, size_t key
 
             uint32_t chunk_id;
             //*set into chunk_waitting_list
+            //pssition:distance from head to the beginning of value
             uint32_t position = chunk_waitting_set_kv(key, &chunk_id, ptr, ring_id, server_key, value, value_length);
             //construct hash_node
             uint64_t hash_value = create_value((uint64_t)key_length, (uint64_t)chunk_id, (uint64_t)position, (uint64_t)value_length);
@@ -445,7 +450,7 @@ memcached_return_t ECHash_set(struct ECHash_st *ptr, const char *key, size_t key
             //encode check
             struct chunk_info_st tmp_cis[RING_SIZE];
             struct parity_kv kv[N - K];
-
+            //not meet the encode requirements
             if(try_encode(ptr, kv, tmp_cis) == 0)
             {
                 return rc;

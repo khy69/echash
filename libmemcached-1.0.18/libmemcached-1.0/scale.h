@@ -12,7 +12,9 @@ struct chunk_repair_st
 
     struct chunk_repair_st *next;
 };
-
+/*
+  position + offset
+*/
 struct pos_len_st
 {
     uint32_t pos;

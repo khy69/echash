@@ -175,7 +175,9 @@ void encode(struct ECHash_st *ptr, uint32_t encode_data_ring[K], struct parity_k
 
     STRIPE_ID_INC++;
 }
-
+/*
+  eccode_data_ring:take down which ring has 1 chunk at least to be encoded
+*/
 inline static int check_encode(struct ECHash_st *ptr, uint32_t encode_data_ring[K])
 {
     //check here may overflow
