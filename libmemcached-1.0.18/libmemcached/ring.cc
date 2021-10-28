@@ -63,7 +63,7 @@ static void run_balance(struct ECHash_st *ptr)
             uint32_t sort_ring_len = 0;
             //write (which ring,which bucket) to sort_ring,return strlen(string)
             sort_ring_len = sprintf(sort_ring, "%s:%u-%u", "Ring", ring_index, pointer_index);
-            //sort_ring->key
+            //sort_ring->key,first one provide a kind of hash model
             uint32_t value = hashkit_digest(&(ptr->rings[0].ring->hashkit), sort_ring, (size_t)sort_ring_len);
             //hash every virtual bucket for echash
             ptr->balance_arr[arr_index].index = ring_index;
@@ -71,7 +71,7 @@ static void run_balance(struct ECHash_st *ptr)
 
         }
     }
-
+//low to high accoring to value
     qsort(ptr->balance_arr, RING_SIZE * RING_VIRTUAL, sizeof(struct balance_st), balance_cmp);
 
     printf("\nThe all ring virtual node:");
@@ -612,7 +612,7 @@ char *ECHash_dget_data(struct ECHash_st *ptr, const char *key, size_t key_length
 
             value = (char *)malloc(CHUNK_SIZE * sizeof(char));
             memcpy(value, chunk_value, CHUNK_SIZE);
-
+            //TODO：restore whole chunk,but why not the object only?
             free(chunk_value);
             printf("Dget [%s]'s chunk success\n", key);
             *f1 = 0;

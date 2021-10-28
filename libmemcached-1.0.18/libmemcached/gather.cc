@@ -15,12 +15,14 @@ __thread double get_in_scaling_parity = 0, get_in_scaling_data = 0;
 
 static inline int check_frag_range(struct pos_len_st *pos_len_list, uint32_t count, uint32_t pos, uint32_t len)
 {
+  //all are parity chunks
     if(count == 0)
     {
         return 1;
     }
     else
     {
+      //TODO:where to get error?
         for(uint32_t i = 1; i < count; i++)
         {
             uint32_t position = pos_len_list[i].pos;
@@ -44,7 +46,7 @@ static int get_value_from_chunk(struct ECHash_st *ptr, struct pos_len_st *pos_le
     size_t value_length;
     uint32_t  flags;
     memcached_return_t rc;
-//2021.10.25 13:27----------------------------------------------------------------
+
     if(gv->cis->key)
     {
         //stripe:%u-parity:%u
@@ -85,10 +87,10 @@ static int get_value_from_chunk(struct ECHash_st *ptr, struct pos_len_st *pos_le
             {
                 key = p->hn->key;
 
-                //stripe:%u-parity:%u
+
                 uint32_t pos = GET_POSITION(p->hn->value);
                 uint32_t len = GET_LENGTH(p->hn->value);
-
+                
                 if(count == 0)
                 {
                     all_for_parity_kv++;
@@ -159,7 +161,7 @@ int gather_other_value(struct ECHash_st *ptr, uint32_t ring_id, struct pos_len_s
       //in case chunks in the same ring
         if(gv[i].cis->ring_id == ring_id)
             continue;
-
+      //when scaling ,you dont know which is also scaling,so you try every one
         get_value_from_chunk(ptr, pos_len_list, count, &gv[i]);
 
         if(gv[i].ok)
