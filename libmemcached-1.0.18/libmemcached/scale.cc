@@ -90,6 +90,7 @@ memcached_return_t ECHash_addserver(struct ECHash_st *ptr, const char *hostname,
             {
                 char *key = hn->key;
                 uint32_t hash = 0;
+                //find a object in the same bucket in hash table to migrate
                 int index = if_affect_range(ptr->rings[ring_id].ring, key, strlen(key), &hash);
 
                 if(index != -1)
@@ -97,7 +98,7 @@ memcached_return_t ECHash_addserver(struct ECHash_st *ptr, const char *hostname,
                     printf("[Affect]hash=%u,bucket=%u,migrate_from_index=%u,key_%u[%s]=>", hash, i, index, k, key);
                     if(is_parity(key))
                     {
-
+                        //affect parity chunk
                         struct timeval begin, end;
                         gettimeofday(&begin, NULL);
 
@@ -115,6 +116,7 @@ memcached_return_t ECHash_addserver(struct ECHash_st *ptr, const char *hostname,
                         if(value)
                         {
                             gettimeofday(&set_begin, NULL);
+                            //set in again...
                             memcached_return_t rc1 = memcached_set_in_scaling(ptr->rings[ring_id].ring, key, strlen(key), value, value_length, (time_t)0, (uint32_t)0);
                             gettimeofday(&set_end, NULL);
                             time_set = time_set + (set_end.tv_sec - set_begin.tv_sec) + (double)(set_end.tv_usec - set_begin.tv_usec) / 1000000;
@@ -124,6 +126,7 @@ memcached_return_t ECHash_addserver(struct ECHash_st *ptr, const char *hostname,
                             else
                                 printf("MIGRATE parity[%s] to index=%u failed\n", key, index);
                             gettimeofday(&del_begin, NULL);
+                            //delete from original server
                             rc1 = memcached_delete_directly(ptr->rings[ring_id].ring, key, strlen(key), (time_t)0, index);
                             gettimeofday(&del_end, NULL);
                             time_del = time_del + (del_end.tv_sec - del_begin.tv_sec) + (double)(del_end.tv_usec - del_begin.tv_usec) / 1000000;
@@ -277,11 +280,12 @@ memcached_return_t ECHash_remove_server(struct ECHash_st *ptr, const char *hostn
 {
     //get the instance,index
     uint32_t remove_index = -1;
+    //phsically server
     memcached_instance_st *instance = memcached_instance_get_by_hostname(ptr, hostname, port, ring_id, &remove_index);
-
+    //start to delete
     instance->remove_flag = 1;
     printf("Remove_index=%u,ip:port=%s:%u,remove_flag=%d\n", remove_index, ptr->rings[ring_id].ring->servers[remove_index]._hostname, ptr->rings[ring_id].ring->servers[remove_index].port_, ptr->rings[ring_id].ring->servers[remove_index].remove_flag);
-
+    //TODO:no need migrating lock?
     memcached_return_t rc = run_distribution_with_scale_in_lock(ptr->rings[ring_id].ring);
 
     if(rc == MEMCACHED_SUCCESS)
@@ -461,7 +465,7 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
 
     instance->remove_flag = 2;
     fprintf(stderr, "repair_index=%u,ip:port=%s:%u,remove_flag=%d\n", repair_index, ptr->rings[ring_id].ring->servers[repair_index]._hostname, ptr->rings[ring_id].ring->servers[repair_index].port_, ptr->rings[ring_id].ring->servers[repair_index].remove_flag);
-
+    //like removing a server
     memcached_return_t rc = run_distribution_with_scale_in_lock(ptr->rings[ring_id].ring);
 
     if(rc == MEMCACHED_SUCCESS)
@@ -480,6 +484,7 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
         double time_data_reset = 0;
 
         uint32_t not_encode = 0;
+        //you never change it....
         uint32_t err_over_2 = 0;
         int skip = 0;
 
@@ -495,7 +500,7 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
 
         char parity_repair[3000][100] = {0};
         uint32_t parity_num = 0;
-
+        //exam one chunk only once
         char chunk_mark[1024 * 128] = {0};
         for(uint32_t i = 0; i < HASH_MAX_SIZE ; i++)
         {
@@ -524,13 +529,16 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
                 }
                 else if((!is_parity(key)) && (if_mark(chunk_mark, hn) == -1) && (if_affect_range(ptr->rings[ring_id].ring, key, strlen(key), &hash) != -1))
                 {
+                  //the first time to search a date chunk
                     uint32_t chunk_id = GET_CHUNK_ID(hn->value);
+                    //check a data chunk only once
                     chunk_mark[chunk_id] = 1;
 
                     uint32_t pos = GET_POSITION(hn->value);
                     uint32_t len = GET_LENGTH(hn->value);
 
                     printf("Traverse hashtable, key[%s],chunk_id=%u,pos=%u,len=%u\n", hn->key, chunk_id, pos, len);
+                    //crl point to the first one
                     crl = chunk_repair_list;
 
                     if(ptr->chunk_list[chunk_id].stat == Sealed && crl)
@@ -542,10 +550,11 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
                         tmp->hns[tmp->count] = hn;
                         tmp->count++;
                         tmp->chunk_id = chunk_id;
+                        //head insert
                         tmp->next = chunk_repair_list;
                         printf("put it new for chunk_id=%u,%u\n", chunk_id, tmp->count - 1);
                         chunk_repair_list = tmp;
-
+                         //examine objects in the same chunk
                         struct key_st *p = ptr->chunk_list[chunk_id].key_list;
                         while(p)
                         {
@@ -578,6 +587,8 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
                     }
                     else
                     {
+                      //the first data chunk
+                      //no need this one!
                         struct timeval b, e;
                         gettimeofday(&b, NULL);
 
@@ -586,6 +597,7 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
                         tmp->count++;
                         tmp->chunk_id = chunk_id;
                         tmp->next = NULL;
+                        //TODO:NOT chunk the whole chunk!
                         printf("put it first one for chunk_id=%u,%u\n", chunk_id, tmp->count - 1);
                         chunk_repair_list = tmp;
 
@@ -616,14 +628,14 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
         {
             char *key[BATCH_PARITY];
             batch = 0;
-
+             //BATH_PARITY remains at least
             if(i + BATCH_PARITY <= parity_num)
             {
                 for(uint32_t j = 0; j < BATCH_PARITY; j++)
                     key[j] = parity_repair[i + j];
 
                 char **value = ECHash_dget_parity_batch(BATCH_PARITY, ptr, (const char **)key, &rc);
-
+//2021.10.31 22:47..........................................................................
                 struct timeval b, e;
                 gettimeofday(&b, NULL);
 
@@ -631,6 +643,7 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
                 {
                     char tmp[CHUNK_SIZE];
                     memset(tmp, -1, CHUNK_SIZE);
+                    //TODO:didn't set the value?
                     memcached_return_t rc1 = memcached_set_in_scaling(ptr->rings[0].ring, parity_repair[i + k], strlen(parity_repair[i + k]), tmp, CHUNK_SIZE, (time_t)0, (uint32_t)0);
                     printf("MIGRATE parity[%s] success\n", parity_repair[i + k]);
                 }
@@ -670,6 +683,7 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
         printf("\nStart data repair\n\n");
 
         gettimeofday(&begin, NULL);
+        //collect all the objects
         crl = chunk_repair_list;
 
 
@@ -685,6 +699,7 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
 
             while(crl && batch < BATCH_DATA)
             {
+              //store the first one in a chunk?
                 hn[batch] = crl->hns[0];
                 key[batch] = hn[batch]->key;
                 for(uint32_t j = 0; j < crl->count; j++)
@@ -693,15 +708,16 @@ memcached_return_t ECHash_repair_simulation(struct ECHash_st *ptr, const char *h
                     pos_len_list[batch][j].pos = GET_POSITION(hn_t->value);
                     pos_len_list[batch][j].len = GET_LENGTH(hn_t->value);
                 }
-
+                 
                 count[batch] = crl->count;
-
+                //count of batch,50 at most
                 batch++;
                 crl = crl->next;
             }
 
             printf("BATCH=%u", batch);
             char **value = ECHash_dget_data_batch(batch, ptr, (const char **)key, &rc, f1, pos_len_list, count);
+            //bug:skip the unrepaired data chunk(just scan once)
             while(--batch)
             {
                 for(uint32_t j = 0; j < count[batch]; j++)

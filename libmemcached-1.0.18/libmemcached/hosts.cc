@@ -54,6 +54,7 @@ static __thread uint32_t hash_of_remove_instance[MEMCACHED_POINTS_PER_SERVER];
 
 int if_affect_range(Memcached *ptr, const char *key, uint32_t key_length, uint32_t *hash)
 {
+    //MEMCACHED_POINTS_PER_SERVER:100 nodes of per server
     uint32_t i = 0, j = MEMCACHED_POINTS_PER_SERVER - 1;
     //cal the same hash value
     *hash = get_hash(ptr, key, key_length);
@@ -527,6 +528,7 @@ static memcached_return_t update_continuum_with_scale_out_lock(Memcached *ptr)
 {
     uint32_t continuum_index = 0;
     uint32_t pointer_counter = 0;
+    //nodes for one server
     uint32_t pointer_per_server = MEMCACHED_POINTS_PER_SERVER;
     uint32_t pointer_per_hash = 1;
     uint32_t live_servers = 0;
@@ -629,7 +631,7 @@ static memcached_return_t update_continuum_with_scale_out_lock(Memcached *ptr)
         }
     }
 
-
+    //try every nodes
     for (uint32_t host_index = 0; host_index < memcached_server_count(ptr); ++host_index)
     {
         if (is_auto_ejecting and list[host_index].next_retry > now.tv_sec)
@@ -1128,6 +1130,7 @@ static memcached_return_t update_continuum_with_scale_in_lock(Memcached *ptr)
 
         if(value_tmp < begin->value || value_tmp >= end->value) //0 < value < begin || value >end
         {
+          //TODO:have to initlize?
             affect_range_array[affect_range_index].begin = end->value;
             affect_range_array[affect_range_index].end = value_tmp;
             affect_range_array[affect_range_index++].index = begin->index;
@@ -1521,6 +1524,7 @@ memcached_return_t memcached_server_add_with_scale_out_lock(memcached_st *shell,
             ketama_continuum_old[i] = ptr->ketama.continuum[i];
             if(i % 10 == 0)
                 printf("\n");
+            //hash value,index of server in a ring
             printf("(%10u,%u); ", ketama_continuum_old[i].value, ketama_continuum_old[i].index);
         }
         rc = memcached_server_add_with_weight_with_scale_out_lock(shell, hostname, port, 0);

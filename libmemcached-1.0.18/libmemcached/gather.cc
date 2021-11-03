@@ -22,7 +22,7 @@ static inline int check_frag_range(struct pos_len_st *pos_len_list, uint32_t cou
     }
     else
     {
-      //TODO:where to get error?
+      //to cover the other bug
         for(uint32_t i = 1; i < count; i++)
         {
             uint32_t position = pos_len_list[i].pos;
@@ -326,6 +326,7 @@ int *gather_other_value_batch(int batch, struct ECHash_st *ptr, uint32_t *ring_i
 
     for(uint32_t i = 0; i < BUFFER_DATA; i++)
     {
+      //set the end character beforehand
         gb[i].key[0] = '\0';
     }
 
@@ -380,6 +381,7 @@ static void get_value_from_chunk_batch_parity(struct ECHash_st *ptr, struct gath
         gb[*num].ring_id = ring_id;
         gb[*num].index = index;
         strcpy(gb[*num].key, gv->cis->key);
+        //TODO:0
         gb[*num].pos = gv->value;
 
 
@@ -407,7 +409,7 @@ static void get_value_from_chunk_batch_parity(struct ECHash_st *ptr, struct gath
 
 
                 all_for_parity_kv++;
-
+                //TODO:for parity
                 all_recovery_kv_data++;
                 if(1)
                 {
@@ -450,6 +452,7 @@ int *gather_other_value_batch_parity(int batch, struct ECHash_st *ptr, uint32_t 
         uint32_t i = 0;
         for(i = 0; i < N; i++)
         {
+            //all info of chunks in a stripe
             gv[b][i].cis = &(ptr->stripe_list[stripe_id[b]][i]);
             gv[b][i].ok = 0;
         }
@@ -459,6 +462,7 @@ int *gather_other_value_batch_parity(int batch, struct ECHash_st *ptr, uint32_t 
 
         for(i = 0, t = 0; t < K; i++)
         {
+          //itself
             if(gv[b][i].cis->ring_id == ring_id[b])
                 continue;
 

@@ -290,7 +290,7 @@ static void *queries_exec(void *param)
             char ip[50]={0};
             uint32_t port=0;
             uint32_t ring=0;
-
+            //find scaled out configuration
             sscanf(conf,"%s %u %u", ip, &port, &ring);
             if(strncmp(ip,"#Scale_Out",10)!=0)
                 continue;
